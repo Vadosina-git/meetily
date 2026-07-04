@@ -419,7 +419,7 @@ async fn run_retranscription<R: Runtime>(
     emit_progress(&app, &meeting_id, "saving", 80, "Saving transcripts...");
 
     // Create transcript segments with proper timestamps from VAD
-    let segments = create_transcript_segments(&all_transcripts);
+    let mut segments = create_transcript_segments(&all_transcripts);
 
     // Save to database
     let app_state = app
@@ -428,6 +428,33 @@ async fn run_retranscription<R: Runtime>(
 
     // Wrap delete+insert+update in a transaction to prevent data loss
     let pool = app_state.db_manager.pool();
+
+    // Load the original speaker map (start, end, speaker) BEFORE overwriting, so
+    // we can re-apply Я/Не Я tags to the new segments by time overlap. Only rows
+    // recorded with the speaker feature enabled have a speaker; others yield an
+    // empty map and segments stay untagged.
+    let old_speaker_map: Vec<(f64, f64, String)> = sqlx::query_as::<_, (Option<f64>, Option<f64>, Option<String>)>(
+        "SELECT audio_start_time, audio_end_time, speaker FROM transcripts WHERE meeting_id = ?"
+    )
+    .bind(&meeting_id)
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default()
+    .into_iter()
+    .filter_map(|(s, e, sp)| match (s, e, sp) {
+        (Some(s), Some(e), Some(sp)) => Some((s, e, sp)),
+        _ => None,
+    })
+    .collect();
+
+    // Assign speaker to each new segment by largest time overlap with the map.
+    if !old_speaker_map.is_empty() {
+        for segment in &mut segments {
+            let start = segment.audio_start_time.unwrap_or(0.0);
+            let end = segment.audio_end_time.unwrap_or(start);
+            segment.speaker = assign_speaker_by_overlap(start, end, &old_speaker_map);
+        }
+    }
     let mut conn = pool.acquire().await.map_err(|e| anyhow!("DB error: {}", e))?;
     let mut tx = sqlx::Connection::begin(&mut *conn)
         .await
@@ -441,8 +468,8 @@ async fn run_retranscription<R: Runtime>(
 
     for segment in &segments {
         sqlx::query(
-            "INSERT INTO transcripts (id, meeting_id, transcript, timestamp, audio_start_time, audio_end_time, duration)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO transcripts (id, meeting_id, transcript, timestamp, audio_start_time, audio_end_time, duration, speaker)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
         )
         .bind(&segment.id)
         .bind(&meeting_id)
@@ -451,6 +478,7 @@ async fn run_retranscription<R: Runtime>(
         .bind(segment.audio_start_time)
         .bind(segment.audio_end_time)
         .bind(segment.duration)
+        .bind(&segment.speaker)
         .execute(&mut *tx)
         .await
         .map_err(|e| anyhow!("Failed to insert transcript: {}", e))?;
@@ -832,9 +860,45 @@ pub async fn is_retranscription_in_progress_command() -> bool {
     is_retranscription_in_progress()
 }
 
+/// Given a new segment time range and a speaker map of (start, end, speaker)
+/// from the original live recording, return the speaker with the largest time
+/// overlap. Returns None if no range overlaps. Used to re-apply Я/Не Я tags
+/// after retranscribe, since the saved audio file is already mixed.
+pub fn assign_speaker_by_overlap(
+    seg_start: f64,
+    seg_end: f64,
+    map: &[(f64, f64, String)],
+) -> Option<String> {
+    let mut best: Option<(f64, &String)> = None;
+    for (start, end, speaker) in map {
+        let overlap = seg_end.min(*end) - seg_start.max(*start);
+        if overlap > 0.0 {
+            match best {
+                Some((b, _)) if overlap <= b => {}
+                _ => best = Some((overlap, speaker)),
+            }
+        }
+    }
+    best.map(|(_, s)| s.clone())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_assign_speaker_by_overlap_picks_max_overlap() {
+        let map = vec![
+            (0.0, 3.0, "mic".to_string()),
+            (3.0, 6.0, "system".to_string()),
+        ];
+        // segment fully inside mic
+        assert_eq!(assign_speaker_by_overlap(0.5, 2.5, &map), Some("mic".to_string()));
+        // straddles both: 0.5s in mic, 2.0s in system → system wins
+        assert_eq!(assign_speaker_by_overlap(2.5, 5.0, &map), Some("system".to_string()));
+        // overlaps nothing
+        assert_eq!(assign_speaker_by_overlap(10.0, 11.0, &map), None);
+    }
 
     #[test]
     fn test_create_transcript_segments_empty() {
