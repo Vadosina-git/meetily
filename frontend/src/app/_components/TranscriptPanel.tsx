@@ -10,6 +10,7 @@ import { usePermissionCheck } from '@/hooks/usePermissionCheck';
 import { ModalType } from '@/hooks/useModalState';
 import { useIsLinux } from '@/hooks/usePlatform';
 import { useMemo } from 'react';
+import { dedupeEcho } from '@/lib/dedupeEcho';
 
 /**
  * TranscriptPanel Component
@@ -32,14 +33,14 @@ export function TranscriptPanel({
 }: TranscriptPanelProps) {
   // Contexts
   const { transcripts, transcriptContainerRef, copyTranscript } = useTranscripts();
-  const { transcriptModelConfig } = useConfig();
+  const { transcriptModelConfig, showSpeakerTags, toggleSpeakerTags } = useConfig();
   const { isRecording, isPaused } = useRecordingState();
   const { checkPermissions, isChecking, hasSystemAudio, hasMicrophone } = usePermissionCheck();
   const isLinux = useIsLinux();
 
   // Convert transcripts to segments for virtualized view
   const segments = useMemo(() =>
-    transcripts.map(t => ({
+    dedupeEcho(transcripts).map(t => ({
       id: t.id,
       timestamp: t.audio_start_time ?? 0,
       endTime: t.audio_end_time,
@@ -84,6 +85,15 @@ export function TranscriptPanel({
                     </span>
                   </Button>
                 }
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleSpeakerTags(!showSpeakerTags)}
+                  title="Показывать метки говорящего (Я / Не Я)"
+                  className={showSpeakerTags ? 'bg-blue-50 text-blue-700 border-blue-300' : ''}
+                >
+                  <span className="text-xs font-medium">Я / Не Я</span>
+                </Button>
               </ButtonGroup>
             </div>
           </div>

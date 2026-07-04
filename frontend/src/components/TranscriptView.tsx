@@ -322,17 +322,19 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
                   )}
                 </TooltipContent>
               </Tooltip>
-              {showSpeakerTags && (transcript.speaker === 'mic' || transcript.speaker === 'system') && (
-                <span
-                  className={`text-[10px] font-medium px-1.5 py-0.5 rounded mt-1 flex-shrink-0 ${
-                    transcript.speaker === 'mic'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {transcript.speaker === 'mic' ? 'Я' : 'Не Я'}
-                </span>
-              )}
+              {(() => {
+                const sp = (transcript.speaker || '').trim().toLowerCase();
+                if (!showSpeakerTags || (sp !== 'mic' && sp !== 'system')) return null;
+                return (
+                  <span
+                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded mt-1 flex-shrink-0 ${
+                      sp === 'mic' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {sp === 'mic' ? 'Я' : 'Не Я'}
+                  </span>
+                );
+              })()}
               <div className="flex-1">
                 {isStreaming ? (
                   // Streaming transcript - show in bubble (full width)

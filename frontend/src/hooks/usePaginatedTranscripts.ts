@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Transcript, MeetingMetadata, PaginatedTranscriptsResponse, TranscriptSegmentData } from "@/types";
+import { dedupeEcho } from "@/lib/dedupeEcho";
 
 const DEFAULT_PAGE_SIZE = 100;
 
@@ -31,7 +32,7 @@ interface UsePaginatedTranscriptsReturn {
  * Convert Transcript array to TranscriptSegmentData for virtualized display
  */
 function convertTranscriptsToSegments(transcripts: Transcript[]): TranscriptSegmentData[] {
-    return transcripts.map(t => ({
+    return dedupeEcho(transcripts).map(t => ({
         id: t.id,
         timestamp: t.audio_start_time ?? 0,
         endTime: t.audio_end_time,
