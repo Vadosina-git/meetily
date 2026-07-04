@@ -27,7 +27,7 @@ export function TranscriptButtonGroup({
   meetingFolderPath,
   onRefetchTranscripts,
 }: TranscriptButtonGroupProps) {
-  const { betaFeatures } = useConfig();
+  const { betaFeatures, showSpeakerTags, toggleSpeakerTags } = useConfig();
   const [showRetranscribeDialog, setShowRetranscribeDialog] = useState(false);
 
   const handleRetranscribeComplete = useCallback(async () => {
@@ -83,6 +83,16 @@ export function TranscriptButtonGroup({
             <span className="hidden lg:inline">Enhance</span>
           </Button>
         )}
+
+        <Button
+          size="sm"
+          variant="outline"
+          className={showSpeakerTags ? 'bg-blue-50 text-blue-700 border-blue-300 xl:px-4' : 'xl:px-4'}
+          onClick={() => toggleSpeakerTags(!showSpeakerTags)}
+          title="Показывать метки говорящего (Я / Не Я)"
+        >
+          <span className="text-xs font-medium">Я / Не Я</span>
+        </Button>
       </ButtonGroup>
 
       {betaFeatures.importAndRetranscribe && meetingId && meetingFolderPath && (
