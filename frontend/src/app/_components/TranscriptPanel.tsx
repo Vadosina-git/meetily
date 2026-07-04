@@ -85,15 +85,17 @@ export function TranscriptPanel({
                     </span>
                   </Button>
                 }
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toggleSpeakerTags(!showSpeakerTags)}
-                  title="Показывать метки говорящего (Я / Не Я)"
-                  className={showSpeakerTags ? 'bg-blue-50 text-blue-700 border-blue-300' : ''}
-                >
-                  <span className="text-xs font-medium">Я / Не Я</span>
-                </Button>
+                {transcripts?.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleSpeakerTags(!showSpeakerTags)}
+                    title="Показывать метки говорящего (Я / Не Я)"
+                    className={showSpeakerTags ? 'bg-blue-50 text-blue-700 border-blue-300' : ''}
+                  >
+                    <span className="text-xs font-medium">Я / Не Я</span>
+                  </Button>
+                )}
               </ButtonGroup>
             </div>
           </div>
