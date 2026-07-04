@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { RecordingStatusBar } from "./RecordingStatusBar";
 import { motion, AnimatePresence } from "framer-motion";
 import { TranscriptSegmentData } from "@/types";
+import { speakerLabel, nextSpeaker, normalizeSpeaker } from "@/lib/speakerTags";
 
 export interface VirtualizedTranscriptViewProps {
     /** Transcript segments to display */
@@ -25,6 +26,8 @@ export interface VirtualizedTranscriptViewProps {
     enableStreaming?: boolean;
     /** Show confidence indicators */
     showConfidence?: boolean;
+    /** When provided, speaker badges become clickable and cycle the tag. */
+    onSpeakerChange?: (id: string, speaker: string) => void;
     /** Completely disable auto-scroll behavior (for meeting details page) */
     disableAutoScroll?: boolean;
 
@@ -73,6 +76,7 @@ const TranscriptSegment = memo(function TranscriptSegment({
     showConfidence,
     speaker,
     showSpeakerTags,
+    onSpeakerChange,
 }: {
     id: string;
     timestamp: number;
@@ -82,6 +86,7 @@ const TranscriptSegment = memo(function TranscriptSegment({
     showConfidence: boolean;
     speaker?: string;
     showSpeakerTags: boolean;
+    onSpeakerChange?: (id: string, speaker: string) => void;
 }) {
     const displayText = cleanStopWords(text) || (text.trim() === '' ? '[Silence]' : text);
 
@@ -101,17 +106,25 @@ const TranscriptSegment = memo(function TranscriptSegment({
                     </TooltipContent>
                 </Tooltip>
                 {(() => {
-                    const sp = (speaker || '').trim().toLowerCase();
-                    if (!showSpeakerTags || (sp !== 'mic' && sp !== 'system')) return null;
-                    return (
-                        <span
-                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded mt-1 flex-shrink-0 ${
-                                sp === 'mic' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                            }`}
-                        >
-                            {sp === 'mic' ? 'Я' : 'Не Я'}
-                        </span>
-                    );
+                    const sp = normalizeSpeaker(speaker);
+                    const label = speakerLabel(sp);
+                    if (!showSpeakerTags || !label) return null;
+                    const base = `text-[10px] font-medium px-1.5 py-0.5 rounded mt-1 flex-shrink-0 ${
+                        sp === 'mic' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                    }`;
+                    if (onSpeakerChange) {
+                        return (
+                            <button
+                                type="button"
+                                onClick={() => onSpeakerChange(id, nextSpeaker(sp))}
+                                title="Нажмите, чтобы сменить говорящего"
+                                className={`${base} cursor-pointer hover:brightness-95 transition`}
+                            >
+                                {label}
+                            </button>
+                        );
+                    }
+                    return <span className={base}>{label}</span>;
                 })()}
                 <div className="flex-1">
                     {isStreaming ? (
@@ -135,6 +148,7 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
     isStopping = false,
     enableStreaming = false,
     showConfidence = true,
+    onSpeakerChange,
     disableAutoScroll = false,
     hasMore = false,
     isLoadingMore = false,
@@ -329,6 +343,7 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                                         showConfidence={showConfidence}
                                         speaker={segment.speaker}
                                         showSpeakerTags={showSpeakerTags}
+                                        onSpeakerChange={onSpeakerChange}
                                     />
                                 </div>
                             );
@@ -387,6 +402,7 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                                         showConfidence={showConfidence}
                                         speaker={segment.speaker}
                                         showSpeakerTags={showSpeakerTags}
+                                        onSpeakerChange={onSpeakerChange}
                                     />
                                 </motion.div>
                             );

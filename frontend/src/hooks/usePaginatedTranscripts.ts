@@ -26,6 +26,7 @@ interface UsePaginatedTranscriptsReturn {
     loadMore: () => Promise<void>;
     reset: () => void;
     refetch: () => Promise<void>;
+    updateSpeaker: (id: string, speaker: string) => void;
 }
 
 /**
@@ -194,6 +195,11 @@ export function usePaginatedTranscripts({
         loadInitial();
     }, [meetingId, reset, loadMetadata, loadTranscriptsAtOffset]);
 
+    // Optimistically update one transcript's speaker in local state.
+    const updateSpeaker = useCallback((id: string, speaker: string) => {
+        setTranscripts(prev => prev.map(t => (t.id === id ? { ...t, speaker } : t)));
+    }, []);
+
     // Convert to segments (memoized)
     const segments = useMemo(() =>
         convertTranscriptsToSegments(transcripts),
@@ -213,5 +219,6 @@ export function usePaginatedTranscripts({
         loadMore,
         reset,
         refetch,
+        updateSpeaker,
     };
 }

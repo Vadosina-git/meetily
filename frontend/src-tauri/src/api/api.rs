@@ -932,6 +932,29 @@ pub async fn api_save_meeting_title<R: Runtime>(
     }
 }
 
+/// Manually update the speaker tag ("mic"/"system") for a single transcript row.
+#[tauri::command]
+pub async fn api_update_transcript_speaker<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    transcript_id: String,
+    speaker: String,
+) -> Result<serde_json::Value, String> {
+    let pool = state.db_manager.pool();
+    match sqlx::query("UPDATE transcripts SET speaker = ? WHERE id = ?")
+        .bind(&speaker)
+        .bind(&transcript_id)
+        .execute(pool)
+        .await
+    {
+        Ok(res) if res.rows_affected() > 0 => {
+            Ok(serde_json::json!({"message": "Speaker updated"}))
+        }
+        Ok(_) => Err(format!("No transcript found with id {}", transcript_id)),
+        Err(e) => Err(format!("Failed to update speaker: {}", e)),
+    }
+}
+
 #[tauri::command]
 pub async fn api_save_transcript<R: Runtime>(
     _app: AppHandle<R>,

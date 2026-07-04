@@ -45,8 +45,19 @@ function MeetingDetailsContent() {
     loadedCount,
     loadMore,
     refetch,
+    updateSpeaker,
     error: transcriptError,
   } = usePaginatedTranscripts({ meetingId: meetingId || '' });
+
+  // Persist a manual speaker tag correction and reflect it optimistically.
+  const handleSpeakerChange = useCallback(async (id: string, speaker: string) => {
+    updateSpeaker(id, speaker);
+    try {
+      await invoke('api_update_transcript_speaker', { transcriptId: id, speaker });
+    } catch (e) {
+      console.error('Failed to persist speaker change:', e);
+    }
+  }, [updateSpeaker]);
 
   // Check if gemma3:1b model is available in Ollama
   const checkForGemmaModel = useCallback(async (): Promise<boolean> => {
@@ -370,6 +381,7 @@ function MeetingDetailsContent() {
       await refetchMeetings();
     }}
     onRefetchTranscripts={refetch}
+    onSpeakerChange={handleSpeakerChange}
     // Pagination props for efficient transcript loading
     segments={segments}
     hasMore={hasMore}

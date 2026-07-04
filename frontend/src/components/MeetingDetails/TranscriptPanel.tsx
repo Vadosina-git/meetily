@@ -29,6 +29,9 @@ interface TranscriptPanelProps {
   meetingId?: string;
   meetingFolderPath?: string | null;
   onRefetchTranscripts?: () => Promise<void>;
+
+  // Manual speaker tag correction
+  onSpeakerChange?: (id: string, speaker: string) => void;
 }
 
 export function TranscriptPanel({
@@ -49,6 +52,7 @@ export function TranscriptPanel({
   meetingId,
   meetingFolderPath,
   onRefetchTranscripts,
+  onSpeakerChange,
 }: TranscriptPanelProps) {
   // Convert transcripts to segments if pagination is not used but we want virtualization
   const convertedSegments = useMemo(() => {
@@ -90,6 +94,7 @@ export function TranscriptPanel({
           isStopping={false}
           enableStreaming={false}
           showConfidence={true}
+          onSpeakerChange={onSpeakerChange}
           disableAutoScroll={disableAutoScroll}
           hasMore={hasMore}
           isLoadingMore={isLoadingMore}

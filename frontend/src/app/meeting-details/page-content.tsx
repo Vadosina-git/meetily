@@ -32,6 +32,7 @@ export default function PageContent({
   totalCount,
   loadedCount,
   onLoadMore,
+  onSpeakerChange,
 }: {
   meeting: any;
   summaryData: Summary | null;
@@ -46,6 +47,7 @@ export default function PageContent({
   totalCount?: number;
   loadedCount?: number;
   onLoadMore?: () => void;
+  onSpeakerChange?: (id: string, speaker: string) => void;
 }) {
   console.log('📄 PAGE CONTENT: Initializing with data:', {
     meetingId: meeting.id,
@@ -191,6 +193,7 @@ export default function PageContent({
           meetingId={meeting.id}
           meetingFolderPath={meeting.folder_path}
           onRefetchTranscripts={onRefetchTranscripts}
+          onSpeakerChange={onSpeakerChange}
         />
         <SummaryPanel
           meeting={meeting}
