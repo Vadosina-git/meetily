@@ -54,6 +54,8 @@ export function SettingsModals({
     setTranscriptModelConfig,
     showConfidenceIndicator,
     toggleConfidenceIndicator,
+    showSpeakerTags,
+    toggleSpeakerTags,
   } = useConfig();
 
   const { isRecording } = useRecordingState();
@@ -271,20 +273,40 @@ export function SettingsModals({
 
           {/* Fixed Footer */}
           <div className="p-6 pt-4 border-t border-gray-200 flex items-center justify-between">
-            {/* Confidence Indicator Toggle */}
-            <div className="flex items-center gap-3">
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showConfidenceIndicator}
-                  onChange={(e) => toggleConfidenceIndicator(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-              <div>
-                <p className="text-sm font-medium text-gray-700">Show Confidence Indicators</p>
-                <p className="text-xs text-gray-500">Display colored dots showing transcription confidence quality</p>
+            {/* Toggles */}
+            <div className="flex flex-col gap-3">
+              {/* Confidence Indicator Toggle */}
+              <div className="flex items-center gap-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showConfidenceIndicator}
+                    onChange={(e) => toggleConfidenceIndicator(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Show Confidence Indicators</p>
+                  <p className="text-xs text-gray-500">Display colored dots showing transcription confidence quality</p>
+                </div>
+              </div>
+
+              {/* Speaker Tags Toggle (Я / Не Я) */}
+              <div className="flex items-center gap-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showSpeakerTags}
+                    onChange={(e) => toggleSpeakerTags(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Показывать метки говорящего (Я / Не Я)</p>
+                  <p className="text-xs text-gray-500">Отмечать рядом с репликой: Я — микрофон, Не Я — системный звук</p>
+                </div>
               </div>
             </div>
 

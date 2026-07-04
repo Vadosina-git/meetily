@@ -62,6 +62,8 @@ interface ConfigContextType {
   // UI preferences
   showConfidenceIndicator: boolean;
   toggleConfidenceIndicator: (checked: boolean) => void;
+  showSpeakerTags: boolean;
+  toggleSpeakerTags: (checked: boolean) => void;
 
   // Beta features
   betaFeatures: BetaFeatures;
@@ -149,6 +151,15 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [showConfidenceIndicator, setShowConfidenceIndicator] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('showConfidenceIndicator');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  // Speaker tags (Я / Не Я) — default ON
+  const [showSpeakerTags, setShowSpeakerTags] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('showSpeakerTags');
       return saved !== null ? saved === 'true' : true;
     }
     return true;
@@ -382,6 +393,15 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new CustomEvent('confidenceIndicatorChanged', { detail: checked }));
   }, []);
 
+  // Toggle speaker tags (Я / Не Я) with localStorage persistence
+  const toggleSpeakerTags = useCallback((checked: boolean) => {
+    setShowSpeakerTags(checked);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('showSpeakerTags', checked.toString());
+    }
+    window.dispatchEvent(new CustomEvent('speakerTagsChanged', { detail: checked }));
+  }, []);
+
   const toggleIsAutoSummary = useCallback((checked: boolean) => {
     setisAutoSummary(checked);
     if (typeof window !== 'undefined') {
@@ -497,6 +517,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setSelectedLanguage: handleSetSelectedLanguage,
     showConfidenceIndicator,
     toggleConfidenceIndicator,
+    showSpeakerTags,
+    toggleSpeakerTags,
     betaFeatures,
     toggleBetaFeature,
     models,
@@ -519,6 +541,8 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     handleSetSelectedLanguage,
     showConfidenceIndicator,
     toggleConfidenceIndicator,
+    showSpeakerTags,
+    toggleSpeakerTags,
     betaFeatures,
     toggleBetaFeature,
     models,
