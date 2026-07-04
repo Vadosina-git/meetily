@@ -58,6 +58,8 @@ interface SummaryPanelProps {
   availableTemplates: Array<{ id: string, name: string, description: string }>;
   selectedTemplate: string;
   onTemplateSelect: (templateId: string, templateName: string) => void;
+  onTemplatesChanged?: () => void;
+  onDeleteTemplate?: (templateId: string) => void;
   isModelConfigLoading?: boolean;
   onOpenModelSettings?: (openFn: () => void) => void;
 }
@@ -94,6 +96,8 @@ export function SummaryPanel({
   availableTemplates,
   selectedTemplate,
   onTemplateSelect,
+  onTemplatesChanged,
+  onDeleteTemplate,
   isModelConfigLoading = false,
   onOpenModelSettings
 }: SummaryPanelProps) {
@@ -280,6 +284,8 @@ export function SummaryPanel({
                 availableTemplates={availableTemplates}
                 selectedTemplate={selectedTemplate}
                 onTemplateSelect={onTemplateSelect}
+                onTemplatesChanged={onTemplatesChanged}
+                onDeleteTemplate={onDeleteTemplate}
                 hasTranscripts={transcripts.length > 0}
                 hasSummary={!!aiSummary}
                 isModelConfigLoading={isModelConfigLoading}

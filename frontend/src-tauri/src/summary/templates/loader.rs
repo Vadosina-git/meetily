@@ -193,6 +193,10 @@ pub fn list_template_ids() -> Vec<String> {
         }
     }
 
+    // Exclude hidden (deleted) ids and internal files (e.g. _hidden)
+    let hidden = read_hidden_ids();
+    ids.retain(|id| !id.starts_with('_') && !hidden.contains(id));
+
     ids.sort();
     ids
 }
@@ -215,6 +219,75 @@ pub fn list_templates() -> Vec<(String, String, String)> {
     }
 
     templates
+}
+
+/// Path to the file tracking hidden (deleted) built-in/bundled template ids.
+fn get_hidden_list_path() -> Option<PathBuf> {
+    Some(get_custom_templates_dir()?.join("_hidden.json"))
+}
+
+/// Read the set of hidden template ids.
+pub fn read_hidden_ids() -> Vec<String> {
+    let Some(path) = get_hidden_list_path() else { return Vec::new() };
+    match std::fs::read_to_string(&path) {
+        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+        Err(_) => Vec::new(),
+    }
+}
+
+fn write_hidden_ids(ids: &[String]) -> Result<(), String> {
+    let custom_dir = get_custom_templates_dir().ok_or("No data directory available")?;
+    std::fs::create_dir_all(&custom_dir).map_err(|e| format!("Failed to create templates dir: {}", e))?;
+    let path = custom_dir.join("_hidden.json");
+    let json = serde_json::to_string_pretty(ids).map_err(|e| format!("Failed to serialize hidden list: {}", e))?;
+    std::fs::write(&path, json).map_err(|e| format!("Failed to write hidden list: {}", e))
+}
+
+/// Save (create or overwrite) a custom template. Validates before writing and
+/// un-hides the id if it was previously deleted.
+pub fn save_custom_template(template_id: &str, json_content: &str) -> Result<(), String> {
+    // Validate first
+    validate_and_parse_template(json_content)?;
+
+    let custom_dir = get_custom_templates_dir().ok_or("No data directory available")?;
+    std::fs::create_dir_all(&custom_dir).map_err(|e| format!("Failed to create templates dir: {}", e))?;
+    let template_path = custom_dir.join(format!("{}.json", template_id));
+    std::fs::write(&template_path, json_content).map_err(|e| format!("Failed to write template: {}", e))?;
+
+    // Un-hide if it was hidden
+    let mut hidden = read_hidden_ids();
+    if let Some(pos) = hidden.iter().position(|h| h == template_id) {
+        hidden.remove(pos);
+        let _ = write_hidden_ids(&hidden);
+    }
+    info!("Saved custom template '{}' to {:?}", template_id, template_path);
+    Ok(())
+}
+
+/// Delete a template. Removes the custom override file (if any) and, when a
+/// built-in/bundled template with the same id still exists, records it as hidden
+/// so it no longer appears in the list.
+pub fn delete_template(template_id: &str) -> Result<(), String> {
+    // Remove custom override file if present
+    if let Some(custom_dir) = get_custom_templates_dir() {
+        let template_path = custom_dir.join(format!("{}.json", template_id));
+        if template_path.exists() {
+            std::fs::remove_file(&template_path).map_err(|e| format!("Failed to delete template file: {}", e))?;
+        }
+    }
+
+    // If a bundled/built-in with this id still resolves, hide it
+    let still_exists = load_bundled_template(template_id).is_some()
+        || defaults::get_builtin_template(template_id).is_some();
+    if still_exists {
+        let mut hidden = read_hidden_ids();
+        if !hidden.iter().any(|h| h == template_id) {
+            hidden.push(template_id.to_string());
+            write_hidden_ids(&hidden)?;
+        }
+    }
+    info!("Deleted template '{}'", template_id);
+    Ok(())
 }
 
 #[cfg(test)]

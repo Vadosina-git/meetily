@@ -123,6 +123,50 @@ pub async fn api_validate_template<R: Runtime>(
     }
 }
 
+/// Returns the full template as a JSON string (name, description, and complete
+/// section objects) for editing in the template editor.
+#[tauri::command]
+pub async fn api_get_template_full<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    template_id: String,
+) -> Result<String, String> {
+    let template = templates::get_template(&template_id)?;
+    serde_json::to_string(&template).map_err(|e| format!("Failed to serialize template: {}", e))
+}
+
+/// Create or update a custom template. If `template_id` is empty, a new unique id
+/// is generated. Returns the final template id.
+#[tauri::command]
+pub async fn api_save_template<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    template_id: String,
+    template_json: String,
+) -> Result<String, String> {
+    // Validate before deciding on an id
+    templates::validate_and_parse_template(&template_json)?;
+
+    let id = if template_id.trim().is_empty() {
+        format!("custom_{}", uuid::Uuid::new_v4().simple())
+    } else {
+        template_id
+    };
+
+    templates::save_custom_template(&id, &template_json)?;
+    info!("Saved template '{}'", id);
+    Ok(id)
+}
+
+/// Delete a template (removes custom override and hides built-in/bundled ones).
+#[tauri::command]
+pub async fn api_delete_template<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    template_id: String,
+) -> Result<String, String> {
+    templates::delete_template(&template_id)?;
+    info!("Deleted template '{}'", template_id);
+    Ok(template_id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

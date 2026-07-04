@@ -16,7 +16,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sparkles, Settings, Loader2, FileText, Check, Square } from 'lucide-react';
+import { Sparkles, Settings, Loader2, FileText, Check, Square, Pencil, Plus } from 'lucide-react';
+import { TemplateEditorDialog } from './TemplateEditorDialog';
 import Analytics from '@/lib/analytics';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
@@ -36,6 +37,8 @@ interface SummaryGeneratorButtonGroupProps {
   availableTemplates: Array<{ id: string, name: string, description: string }>;
   selectedTemplate: string;
   onTemplateSelect: (templateId: string, templateName: string) => void;
+  onTemplatesChanged?: () => void;
+  onDeleteTemplate?: (templateId: string) => void;
   hasTranscripts?: boolean;
   hasSummary?: boolean;
   isModelConfigLoading?: boolean;
@@ -53,6 +56,8 @@ export function SummaryGeneratorButtonGroup({
   availableTemplates,
   selectedTemplate,
   onTemplateSelect,
+  onTemplatesChanged,
+  onDeleteTemplate,
   hasTranscripts = true,
   hasSummary = false,
   isModelConfigLoading = false,
@@ -61,6 +66,13 @@ export function SummaryGeneratorButtonGroup({
 }: SummaryGeneratorButtonGroupProps) {
   const [isCheckingModels, setIsCheckingModels] = useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const [templateEditorOpen, setTemplateEditorOpen] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+
+  const openTemplateEditor = (id: string | null) => {
+    setEditingTemplateId(id);
+    setTemplateEditorOpen(true);
+  };
 
   // Expose the function to open the modal via callback registration
   useEffect(() => {
@@ -345,16 +357,49 @@ export function SummaryGeneratorButtonGroup({
                 title={template.description}
                 className="flex items-center justify-between gap-2"
               >
-                <span>{template.name}</span>
-                {selectedTemplate === template.id && (
-                  <Check className="h-4 w-4 text-green-600" />
-                )}
+                <span className="truncate">{template.name}</span>
+                <span className="flex items-center gap-1.5 flex-shrink-0">
+                  {selectedTemplate === template.id && (
+                    <Check className="h-4 w-4 text-green-600" />
+                  )}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      openTemplateEditor(template.id);
+                    }}
+                    title="Редактировать шаблон"
+                    className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </span>
+                </span>
               </DropdownMenuItem>
             ))}
 
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                openTemplateEditor(null);
+              }}
+              className="flex items-center gap-2 text-blue-600 font-medium border-t mt-1 pt-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Новый шаблон</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+
+      <TemplateEditorDialog
+        open={templateEditorOpen}
+        onOpenChange={setTemplateEditorOpen}
+        templateId={editingTemplateId}
+        onSaved={() => onTemplatesChanged?.()}
+        onDelete={onDeleteTemplate}
+      />
     </ButtonGroup>
   );
 }
