@@ -71,6 +71,8 @@ const TranscriptSegment = memo(function TranscriptSegment({
     confidence,
     isStreaming,
     showConfidence,
+    speaker,
+    showSpeakerTags,
 }: {
     id: string;
     timestamp: number;
@@ -78,6 +80,8 @@ const TranscriptSegment = memo(function TranscriptSegment({
     confidence?: number;
     isStreaming: boolean;
     showConfidence: boolean;
+    speaker?: string;
+    showSpeakerTags: boolean;
 }) {
     const displayText = cleanStopWords(text) || (text.trim() === '' ? '[Silence]' : text);
 
@@ -96,6 +100,15 @@ const TranscriptSegment = memo(function TranscriptSegment({
                         )}
                     </TooltipContent>
                 </Tooltip>
+                {showSpeakerTags && (speaker === 'mic' || speaker === 'system') && (
+                    <span
+                        className={`text-[10px] font-medium px-1.5 py-0.5 rounded mt-1 flex-shrink-0 ${
+                            speaker === 'mic' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                        }`}
+                    >
+                        {speaker === 'mic' ? 'Я' : 'Не Я'}
+                    </span>
+                )}
                 <div className="flex-1">
                     {isStreaming ? (
                         <div className="bg-gray-100 border border-gray-200 rounded-lg px-3 py-2">
@@ -132,6 +145,20 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
 
     // Force re-render without flushSync (avoids React warning)
     const [, rerender] = useReducer((x: number) => x + 1, 0);
+
+    // Speaker tags (Я / Не Я) preference — self-contained, mirrors settings toggle
+    const [showSpeakerTags, setShowSpeakerTags] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('showSpeakerTags');
+            return saved !== null ? saved === 'true' : true;
+        }
+        return true;
+    });
+    useEffect(() => {
+        const handler = (e: Event) => setShowSpeakerTags((e as CustomEvent<boolean>).detail);
+        window.addEventListener('speakerTagsChanged', handler);
+        return () => window.removeEventListener('speakerTagsChanged', handler);
+    }, []);
 
     // Setup virtualizer for efficient rendering of large lists
     const virtualizer = useVirtualizer({
@@ -296,6 +323,8 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                                         confidence={segment.confidence}
                                         isStreaming={isStreaming}
                                         showConfidence={showConfidence}
+                                        speaker={segment.speaker}
+                                        showSpeakerTags={showSpeakerTags}
                                     />
                                 </div>
                             );
@@ -352,6 +381,8 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                                         confidence={segment.confidence}
                                         isStreaming={isStreaming}
                                         showConfidence={showConfidence}
+                                        speaker={segment.speaker}
+                                        showSpeakerTags={showSpeakerTags}
                                     />
                                 </motion.div>
                             );

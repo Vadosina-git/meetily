@@ -146,6 +146,24 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
     return () => window.removeEventListener('confidenceIndicatorChanged', handleConfidenceChange);
   }, []);
 
+  // Load preference for showing speaker tags (Я / Не Я)
+  const [showSpeakerTags, setShowSpeakerTags] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('showSpeakerTags');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    const handleSpeakerTagsChange = (e: Event) => {
+      const customEvent = e as CustomEvent<boolean>;
+      setShowSpeakerTags(customEvent.detail);
+    };
+    window.addEventListener('speakerTagsChanged', handleSpeakerTagsChange);
+    return () => window.removeEventListener('speakerTagsChanged', handleSpeakerTagsChange);
+  }, []);
+
   // Listen for speech-detected event
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -304,6 +322,17 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
                   )}
                 </TooltipContent>
               </Tooltip>
+              {showSpeakerTags && (transcript.speaker === 'mic' || transcript.speaker === 'system') && (
+                <span
+                  className={`text-[10px] font-medium px-1.5 py-0.5 rounded mt-1 flex-shrink-0 ${
+                    transcript.speaker === 'mic'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  {transcript.speaker === 'mic' ? 'Я' : 'Не Я'}
+                </span>
+              )}
               <div className="flex-1">
                 {isStreaming ? (
                   // Streaming transcript - show in bubble (full width)
