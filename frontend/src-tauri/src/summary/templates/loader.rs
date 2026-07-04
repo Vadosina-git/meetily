@@ -221,6 +221,20 @@ pub fn list_templates() -> Vec<(String, String, String)> {
     templates
 }
 
+/// Reject template ids that could escape the templates directory. Ids must be a
+/// short slug of ASCII alphanumerics plus `_`/`-`, not starting with `_`
+/// (reserved for internal files) and containing no path separators or `..`.
+fn validate_template_id(template_id: &str) -> Result<(), String> {
+    if template_id.is_empty()
+        || template_id.len() > 64
+        || template_id.starts_with('_')
+        || !template_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        return Err(format!("Invalid template id: {:?}", template_id));
+    }
+    Ok(())
+}
+
 /// Path to the file tracking hidden (deleted) built-in/bundled template ids.
 fn get_hidden_list_path() -> Option<PathBuf> {
     Some(get_custom_templates_dir()?.join("_hidden.json"))
@@ -246,7 +260,8 @@ fn write_hidden_ids(ids: &[String]) -> Result<(), String> {
 /// Save (create or overwrite) a custom template. Validates before writing and
 /// un-hides the id if it was previously deleted.
 pub fn save_custom_template(template_id: &str, json_content: &str) -> Result<(), String> {
-    // Validate first
+    validate_template_id(template_id)?;
+    // Validate content
     validate_and_parse_template(json_content)?;
 
     let custom_dir = get_custom_templates_dir().ok_or("No data directory available")?;
@@ -268,6 +283,7 @@ pub fn save_custom_template(template_id: &str, json_content: &str) -> Result<(),
 /// built-in/bundled template with the same id still exists, records it as hidden
 /// so it no longer appears in the list.
 pub fn delete_template(template_id: &str) -> Result<(), String> {
+    validate_template_id(template_id)?;
     // Remove custom override file if present
     if let Some(custom_dir) = get_custom_templates_dir() {
         let template_path = custom_dir.join(format!("{}.json", template_id));
